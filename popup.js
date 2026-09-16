@@ -3,12 +3,12 @@ const bodyInput = document.getElementById("body");
 const saveBtn = document.getElementById("saveBtn");
 const promptList = document.getElementById("promptList");
 
+let editingId = null;
 
-// Load prompts when popup opens
 loadPrompts();
 
 
-// Save prompt
+// Save / Update prompt
 saveBtn.addEventListener("click", async () => {
 
     const title = titleInput.value.trim();
@@ -20,16 +20,42 @@ saveBtn.addEventListener("click", async () => {
     }
 
     const result = await chrome.storage.local.get("prompts");
+    let prompts = result.prompts || [];
 
-    const prompts = result.prompts || [];
 
-    const newPrompt = {
-        id: Date.now(),
-        title: title,
-        body: body
-    };
+    // EDIT MODE
+    if (editingId !== null) {
 
-    prompts.push(newPrompt);
+        prompts = prompts.map(prompt => {
+
+            if (prompt.id === editingId) {
+                return {
+                    ...prompt,
+                    title: title,
+                    body: body
+                };
+            }
+
+            return prompt;
+        });
+
+        editingId = null;
+        saveBtn.textContent = "Save Prompt";
+
+    }
+
+    // ADD MODE
+    else {
+
+        const newPrompt = {
+            id: Date.now(),
+            title: title,
+            body: body
+        };
+
+        prompts.push(newPrompt);
+    }
+
 
     await chrome.storage.local.set({
         prompts: prompts
@@ -56,6 +82,7 @@ async function loadPrompts() {
         return;
     }
 
+
     prompts.forEach(prompt => {
 
         const div = document.createElement("div");
@@ -67,11 +94,12 @@ async function loadPrompts() {
             <p>${prompt.body}</p>
 
             <button class="injectBtn">Inject</button>
+            <button class="editBtn">Edit</button>
             <button class="deleteBtn">Delete</button>
         `;
 
 
-        // Inject button
+        // INJECT
         div.querySelector(".injectBtn").addEventListener("click", async () => {
 
             const [tab] = await chrome.tabs.query({
@@ -87,7 +115,20 @@ async function loadPrompts() {
         });
 
 
-        // Delete button
+        // EDIT
+        div.querySelector(".editBtn").addEventListener("click", () => {
+
+            titleInput.value = prompt.title;
+            bodyInput.value = prompt.body;
+
+            editingId = prompt.id;
+
+            saveBtn.textContent = "Update Prompt";
+
+        });
+
+
+        // DELETE
         div.querySelector(".deleteBtn").addEventListener("click", async () => {
 
             const updatedPrompts = prompts.filter(
@@ -100,6 +141,7 @@ async function loadPrompts() {
 
             loadPrompts();
         });
+
 
         promptList.appendChild(div);
     });
