@@ -6,17 +6,72 @@
 </head>
 <body>
 
-    <h2>Prompt_E</h2>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand-lockup">
+                <div class="brand-mark" aria-hidden="true">P</div>
+                <div>
+                    <p class="eyebrow">Prompt library</p>
+                    <h1>Prompt_E</h1>
+                </div>
+            </div>
+            <span class="status-dot" title="Local library is ready">Ready</span>
+        </header>
 
-    <input type="text" id="title" placeholder="Prompt Title">
+        <section class="intro" aria-labelledby="intro-title">
+            <p class="eyebrow">Build your shortcut stack</p>
+            <h2 id="intro-title">Ideas, ready when you are.</h2>
+            <p class="intro-copy">Keep your best prompts close and insert them anywhere with a right-click.</p>
+        </section>
 
-    <textarea id="body" placeholder="Prompt Text"></textarea>
+        <section class="composer" aria-labelledby="composer-title">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Library entry</p>
+                    <h2 id="composer-title">Create a prompt</h2>
+                </div>
+                <span class="step-badge">01</span>
+            </div>
 
-    <button id="saveBtn">Save Prompt</button>
+            <label for="title">Title</label>
+            <input type="text" id="title" placeholder="e.g. Product launch brief" autocomplete="off">
 
-    <hr>
+            <label for="body">Prompt</label>
+            <textarea id="body" placeholder="Write the instruction you reach for most..."></textarea>
 
-    <div id="promptList"></div>
+            <div class="composer-actions">
+                <button id="cancelBtn" class="button button-ghost" type="button" hidden>Cancel</button>
+                <button id="saveBtn" class="button button-primary" type="button">
+                    <span>Save prompt</span>
+                    <span class="button-arrow" aria-hidden="true">&#8599;</span>
+                </button>
+            </div>
+        </section>
+
+        <section class="library" aria-labelledby="library-title">
+            <div class="library-heading">
+                <div>
+                    <div class="title-row">
+                        <h2 id="library-title">Your prompts</h2>
+                        <span id="promptCount" class="count-badge">0</span>
+                    </div>
+                    <p class="section-note">Your personal collection</p>
+                </div>
+                <div class="search-wrap">
+                    <span aria-hidden="true">&#8981;</span>
+                    <input id="searchInput" type="search" placeholder="Search" aria-label="Search prompts">
+                </div>
+            </div>
+
+            <div id="promptList" class="prompt-list"></div>
+            <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+        </section>
+
+        <footer class="app-footer">
+            <span>Stored locally on this device</span>
+            <span class="footer-key">⌘</span>
+        </footer>
+    </main>
 
     <script src="popup.js"></script>
 
