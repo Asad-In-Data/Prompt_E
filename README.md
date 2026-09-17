@@ -2,6 +2,9 @@
 
 Prompt_E is a Chrome extension for saving, organizing, and instantly inserting reusable prompts anywhere on the web.
 
+<img width="386" height="217" alt="P1" src="https://github.com/user-attachments/assets/7511856b-6840-4c6c-9f93-de420b29dd75" />
+
+
 ## Features
 
 - Save, edit, delete, and search reusable prompts.
@@ -11,6 +14,11 @@ Prompt_E is a Chrome extension for saving, organizing, and instantly inserting r
 - Track prompt usage and sort the library by most used.
 - Export the local prompt library to JSON and import it on another device.
 - Store all prompt data locally with `chrome.storage.local`.
+
+<img width="372" height="472" alt="P2" src="https://github.com/user-attachments/assets/6bccfbb4-50ea-437b-81e1-2cf41cae8c33" />
+
+<img width="384" height="561" alt="P3" src="https://github.com/user-attachments/assets/c402f62b-fddb-49b8-88f1-8dc0ef6acac9" />
+
 
 ## Installation
 
