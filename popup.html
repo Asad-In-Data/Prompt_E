@@ -39,6 +39,25 @@
             <label for="body">Prompt</label>
             <textarea id="body" placeholder="Write the instruction you reach for most..."></textarea>
 
+            <div class="field-grid">
+                <div>
+                    <label for="category">Category</label>
+                    <select id="category">
+                        <option value="General">General</option>
+                        <option value="Writing">Writing</option>
+                        <option value="Coding">Coding</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Research">Research</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="tags">Tags</label>
+                    <input type="text" id="tags" placeholder="e.g. launch, email" autocomplete="off">
+                </div>
+            </div>
+
+            <p class="variable-hint">Use <code>{{topic}}</code> in a prompt to fill it in when you use it.</p>
+
             <div class="composer-actions">
                 <button id="cancelBtn" class="button button-ghost" type="button" hidden>Cancel</button>
                 <button id="saveBtn" class="button button-primary" type="button">
@@ -60,6 +79,22 @@
                 <div class="search-wrap">
                     <span aria-hidden="true">&#8981;</span>
                     <input id="searchInput" type="search" placeholder="Search" aria-label="Search prompts">
+                </div>
+            </div>
+
+            <div class="library-tools">
+                <select id="categoryFilter" aria-label="Filter prompts by category">
+                    <option value="all">All categories</option>
+                    <option value="General">General</option>
+                    <option value="Writing">Writing</option>
+                    <option value="Coding">Coding</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Research">Research</option>
+                </select>
+                <div class="data-actions">
+                    <button id="exportBtn" class="tool-button" type="button">Export JSON</button>
+                    <button id="importBtn" class="tool-button" type="button">Import JSON</button>
+                    <input id="importFile" type="file" accept="application/json" hidden>
                 </div>
             </div>
 

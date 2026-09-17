@@ -1,10 +1,16 @@
 const titleInput = document.getElementById("title");
 const bodyInput = document.getElementById("body");
+const categoryInput = document.getElementById("category");
+const tagsInput = document.getElementById("tags");
 const saveBtn = document.getElementById("saveBtn");
 const cancelBtn = document.getElementById("cancelBtn");
 const promptList = document.getElementById("promptList");
 const promptCount = document.getElementById("promptCount");
 const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
+const exportBtn = document.getElementById("exportBtn");
+const importBtn = document.getElementById("importBtn");
+const importFile = document.getElementById("importFile");
 const statusMessage = document.getElementById("statusMessage");
 
 let editingId = null;
@@ -14,7 +20,11 @@ loadPrompts();
 
 
 cancelBtn.addEventListener("click", resetComposer);
-searchInput.addEventListener("input", () => renderPrompts(searchInput.value));
+searchInput.addEventListener("input", () => renderPrompts());
+categoryFilter.addEventListener("change", () => renderPrompts());
+exportBtn.addEventListener("click", exportPrompts);
+importBtn.addEventListener("click", () => importFile.click());
+importFile.addEventListener("change", importPrompts);
 
 
 // Save / Update prompt
@@ -22,6 +32,8 @@ saveBtn.addEventListener("click", async () => {
 
     const title = titleInput.value.trim();
     const body = bodyInput.value.trim();
+    const category = categoryInput.value;
+    const tags = parseTags(tagsInput.value);
     const wasEditing = editingId !== null;
 
     if (!title || !body) {
@@ -43,7 +55,9 @@ saveBtn.addEventListener("click", async () => {
                 return {
                     ...prompt,
                     title: title,
-                    body: body
+                    body: body,
+                    category: category,
+                    tags: tags
                 };
             }
 
@@ -61,7 +75,9 @@ saveBtn.addEventListener("click", async () => {
         const newPrompt = {
             id: Date.now(),
             title: title,
-            body: body
+            body: body,
+            category: category,
+            tags: tags
         };
 
         prompts.push(newPrompt);
@@ -86,21 +102,25 @@ async function loadPrompts() {
 
     const result = await chrome.storage.local.get("prompts");
 
-    savedPrompts = result.prompts || [];
+    savedPrompts = (result.prompts || []).map(normalizePrompt);
     promptCount.textContent = savedPrompts.length;
     renderPrompts(searchInput.value);
 }
 
 
-function renderPrompts(searchTerm = "") {
+function renderPrompts() {
 
     promptList.innerHTML = "";
 
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const normalizedSearch = searchInput.value.trim().toLowerCase();
+    const selectedCategory = categoryFilter.value;
     const prompts = savedPrompts.filter(prompt => {
-        return !normalizedSearch ||
+        const matchesSearch = !normalizedSearch ||
             prompt.title.toLowerCase().includes(normalizedSearch) ||
-            prompt.body.toLowerCase().includes(normalizedSearch);
+            prompt.body.toLowerCase().includes(normalizedSearch) ||
+            prompt.tags.join(" ").toLowerCase().includes(normalizedSearch);
+        const matchesCategory = selectedCategory === "all" || prompt.category === selectedCategory;
+        return matchesSearch && matchesCategory;
     });
 
     if (savedPrompts.length === 0) {
@@ -132,6 +152,10 @@ function renderPrompts(searchTerm = "") {
 
         div.innerHTML = `
             <strong class="prompt-title"></strong>
+            <div class="prompt-meta">
+                <span class="category-pill"></span>
+                <span class="tag-pill"></span>
+            </div>
             <p class="prompt-body"></p>
             <div class="prompt-actions">
                 <button class="card-button inject-btn" type="button">Use prompt</button>
@@ -141,6 +165,8 @@ function renderPrompts(searchTerm = "") {
         `;
 
         div.querySelector(".prompt-title").textContent = prompt.title;
+        div.querySelector(".category-pill").textContent = prompt.category;
+        div.querySelector(".tag-pill").textContent = prompt.tags.length ? `#${prompt.tags.join(" #")}` : "No tags";
         div.querySelector(".prompt-body").textContent = prompt.body;
 
 
@@ -165,6 +191,8 @@ function renderPrompts(searchTerm = "") {
 
             titleInput.value = prompt.title;
             bodyInput.value = prompt.body;
+            categoryInput.value = prompt.category;
+            tagsInput.value = prompt.tags.join(", ");
 
             editingId = prompt.id;
 
@@ -200,8 +228,84 @@ function resetComposer() {
     editingId = null;
     titleInput.value = "";
     bodyInput.value = "";
+    categoryInput.value = "General";
+    tagsInput.value = "";
     saveBtn.querySelector("span").textContent = "Save prompt";
     cancelBtn.hidden = true;
     statusMessage.textContent = "";
     statusMessage.style.color = "";
+}
+
+
+function parseTags(value) {
+
+    return [...new Set(value.split(",").map(tag => tag.trim().replace(/^#/, "")).filter(Boolean))];
+}
+
+
+function normalizePrompt(prompt) {
+
+    return {
+        id: Number(prompt.id) || Date.now(),
+        title: String(prompt.title || "Untitled prompt"),
+        body: String(prompt.body || ""),
+        category: String(prompt.category || "General"),
+        tags: Array.isArray(prompt.tags) ? prompt.tags.map(String).filter(Boolean) : []
+    };
+}
+
+
+function exportPrompts() {
+
+    const file = new Blob([JSON.stringify(savedPrompts, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `prompt-e-library-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showStatus("Your prompt library was exported.", "#56705d");
+}
+
+
+async function importPrompts(event) {
+
+    const file = event.target.files[0];
+    event.target.value = "";
+
+    if (!file) {
+        return;
+    }
+
+    try {
+        const imported = JSON.parse(await file.text());
+
+        if (!Array.isArray(imported)) {
+            throw new Error("Expected a prompt array.");
+        }
+
+        const importedPrompts = imported
+            .map(normalizePrompt)
+            .filter(prompt => prompt.title && prompt.body);
+        const existingIds = new Set(savedPrompts.map(prompt => prompt.id));
+        const newPrompts = importedPrompts.map(prompt => {
+            if (existingIds.has(prompt.id)) {
+                return { ...prompt, id: Date.now() + Math.random() };
+            }
+            return prompt;
+        });
+
+        await chrome.storage.local.set({ prompts: [...savedPrompts, ...newPrompts] });
+        await loadPrompts();
+        showStatus(`${newPrompts.length} prompt${newPrompts.length === 1 ? "" : "s"} imported.`, "#56705d");
+    } catch (error) {
+        showStatus("That file is not a valid Prompt_E export.", "#a83f35");
+    }
+}
+
+
+function showStatus(message, color) {
+
+    statusMessage.textContent = message;
+    statusMessage.style.color = color;
 }
