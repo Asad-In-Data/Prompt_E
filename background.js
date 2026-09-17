@@ -36,6 +36,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         action: "injectPrompt",
         prompt: prompt.body
     });
+    markPromptUsed(prompt.id);
 
 });
 
@@ -57,9 +58,18 @@ async function refreshContextMenus() {
         chrome.contextMenus.create({
             id: `${promptItemPrefix}${prompt.id}`,
             parentId: promptMenuId,
-            title: prompt.title,
+            title: prompt.shortcut ? `${prompt.title} (${prompt.shortcut})` : prompt.title,
             contexts: ["editable"]
         });
 
     });
+}
+
+async function markPromptUsed(promptId) {
+
+    const result = await chrome.storage.local.get("prompts");
+    const prompts = (result.prompts || []).map(prompt => prompt.id === promptId
+        ? { ...prompt, usageCount: (Number(prompt.usageCount) || 0) + 1, lastUsed: Date.now() }
+        : prompt);
+    await chrome.storage.local.set({ prompts });
 }

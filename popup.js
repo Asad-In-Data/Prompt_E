@@ -2,12 +2,14 @@ const titleInput = document.getElementById("title");
 const bodyInput = document.getElementById("body");
 const categoryInput = document.getElementById("category");
 const tagsInput = document.getElementById("tags");
+const shortcutInput = document.getElementById("shortcut");
 const saveBtn = document.getElementById("saveBtn");
 const cancelBtn = document.getElementById("cancelBtn");
 const promptList = document.getElementById("promptList");
 const promptCount = document.getElementById("promptCount");
 const searchInput = document.getElementById("searchInput");
 const categoryFilter = document.getElementById("categoryFilter");
+const sortFilter = document.getElementById("sortFilter");
 const exportBtn = document.getElementById("exportBtn");
 const importBtn = document.getElementById("importBtn");
 const importFile = document.getElementById("importFile");
@@ -22,6 +24,7 @@ loadPrompts();
 cancelBtn.addEventListener("click", resetComposer);
 searchInput.addEventListener("input", () => renderPrompts());
 categoryFilter.addEventListener("change", () => renderPrompts());
+sortFilter.addEventListener("change", () => renderPrompts());
 exportBtn.addEventListener("click", exportPrompts);
 importBtn.addEventListener("click", () => importFile.click());
 importFile.addEventListener("change", importPrompts);
@@ -34,6 +37,7 @@ saveBtn.addEventListener("click", async () => {
     const body = bodyInput.value.trim();
     const category = categoryInput.value;
     const tags = parseTags(tagsInput.value);
+    const shortcut = normalizeShortcut(shortcutInput.value);
     const wasEditing = editingId !== null;
 
     if (!title || !body) {
@@ -44,6 +48,12 @@ saveBtn.addEventListener("click", async () => {
 
     const result = await chrome.storage.local.get("prompts");
     let prompts = result.prompts || [];
+
+    if (shortcut && prompts.some(prompt => prompt.shortcut && normalizeShortcut(prompt.shortcut) === shortcut && prompt.id !== editingId)) {
+        statusMessage.textContent = "That shortcut is already assigned to another prompt.";
+        statusMessage.style.color = "#a83f35";
+        return;
+    }
 
 
     // EDIT MODE
@@ -57,7 +67,8 @@ saveBtn.addEventListener("click", async () => {
                     title: title,
                     body: body,
                     category: category,
-                    tags: tags
+                    tags: tags,
+                    shortcut: shortcut
                 };
             }
 
@@ -77,7 +88,10 @@ saveBtn.addEventListener("click", async () => {
             title: title,
             body: body,
             category: category,
-            tags: tags
+            tags: tags,
+            shortcut: shortcut,
+            usageCount: 0,
+            lastUsed: null
         };
 
         prompts.push(newPrompt);
@@ -123,6 +137,10 @@ function renderPrompts() {
         return matchesSearch && matchesCategory;
     });
 
+    prompts.sort((first, second) => sortFilter.value === "used"
+        ? second.usageCount - first.usageCount || second.id - first.id
+        : second.id - first.id);
+
     if (savedPrompts.length === 0) {
         promptList.innerHTML = `
             <div class="empty-state">
@@ -155,6 +173,8 @@ function renderPrompts() {
             <div class="prompt-meta">
                 <span class="category-pill"></span>
                 <span class="tag-pill"></span>
+                <span class="usage-pill"></span>
+                <span class="shortcut-pill"></span>
             </div>
             <p class="prompt-body"></p>
             <div class="prompt-actions">
@@ -167,6 +187,8 @@ function renderPrompts() {
         div.querySelector(".prompt-title").textContent = prompt.title;
         div.querySelector(".category-pill").textContent = prompt.category;
         div.querySelector(".tag-pill").textContent = prompt.tags.length ? `#${prompt.tags.join(" #")}` : "No tags";
+        div.querySelector(".usage-pill").textContent = `${prompt.usageCount} use${prompt.usageCount === 1 ? "" : "s"}`;
+        div.querySelector(".shortcut-pill").textContent = prompt.shortcut || "No shortcut";
         div.querySelector(".prompt-body").textContent = prompt.body;
 
 
@@ -183,6 +205,9 @@ function renderPrompts() {
                 prompt: prompt.body
             });
 
+            await markPromptUsed(prompt.id);
+            loadPrompts();
+
         });
 
 
@@ -193,6 +218,7 @@ function renderPrompts() {
             bodyInput.value = prompt.body;
             categoryInput.value = prompt.category;
             tagsInput.value = prompt.tags.join(", ");
+            shortcutInput.value = prompt.shortcut;
 
             editingId = prompt.id;
 
@@ -230,6 +256,7 @@ function resetComposer() {
     bodyInput.value = "";
     categoryInput.value = "General";
     tagsInput.value = "";
+    shortcutInput.value = "";
     saveBtn.querySelector("span").textContent = "Save prompt";
     cancelBtn.hidden = true;
     statusMessage.textContent = "";
@@ -250,8 +277,30 @@ function normalizePrompt(prompt) {
         title: String(prompt.title || "Untitled prompt"),
         body: String(prompt.body || ""),
         category: String(prompt.category || "General"),
-        tags: Array.isArray(prompt.tags) ? prompt.tags.map(String).filter(Boolean) : []
+        tags: Array.isArray(prompt.tags) ? prompt.tags.map(String).filter(Boolean) : [],
+        shortcut: normalizeShortcut(prompt.shortcut || ""),
+        usageCount: Number(prompt.usageCount) || 0,
+        lastUsed: prompt.lastUsed || null
     };
+}
+
+
+function normalizeShortcut(value) {
+
+    const parts = String(value || "").trim().replace(/\s+/g, "").split("+").filter(Boolean);
+    const modifiers = ["Alt", "Ctrl", "Meta", "Shift"].filter(modifier => parts.some(part => part.toLowerCase() === modifier.toLowerCase()));
+    const key = parts.find(part => !modifiers.some(modifier => part.toLowerCase() === modifier.toLowerCase()));
+    return key ? [...modifiers, key.length === 1 ? key.toUpperCase() : key].join("+") : "";
+}
+
+
+async function markPromptUsed(promptId) {
+
+    const result = await chrome.storage.local.get("prompts");
+    const prompts = (result.prompts || []).map(prompt => prompt.id === promptId
+        ? { ...prompt, usageCount: (Number(prompt.usageCount) || 0) + 1, lastUsed: Date.now() }
+        : prompt);
+    await chrome.storage.local.set({ prompts });
 }
 
 

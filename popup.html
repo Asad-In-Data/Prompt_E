@@ -56,6 +56,9 @@
                 </div>
             </div>
 
+            <label for="shortcut">Keyboard shortcut <span class="optional-label">optional</span></label>
+            <input type="text" id="shortcut" placeholder="e.g. Alt+Shift+1" autocomplete="off">
+
             <p class="variable-hint">Use <code>{{topic}}</code> in a prompt to fill it in when you use it.</p>
 
             <div class="composer-actions">
@@ -90,6 +93,10 @@
                     <option value="Coding">Coding</option>
                     <option value="Marketing">Marketing</option>
                     <option value="Research">Research</option>
+                </select>
+                <select id="sortFilter" aria-label="Sort prompts">
+                    <option value="recent">Recently added</option>
+                    <option value="used">Most used</option>
                 </select>
                 <div class="data-actions">
                     <button id="exportBtn" class="tool-button" type="button">Export JSON</button>

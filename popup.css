@@ -243,6 +243,14 @@ select:focus {
     line-height: 1.4;
 }
 
+.optional-label {
+    color: #a1aaa3;
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
 code {
     padding: 2px 4px;
     border-radius: 4px;
@@ -324,6 +332,11 @@ code {
     height: 30px;
     padding: 0 8px;
     font-size: 10px;
+}
+
+.library-tools > select + select {
+    min-width: 116px;
+    margin-left: -2px;
 }
 
 .data-actions {
@@ -445,6 +458,26 @@ code {
 .tag-pill {
     color: var(--muted);
     background: #eef1ed;
+}
+
+.usage-pill {
+    padding: 3px 6px;
+    border-radius: 4px;
+    color: #9a6b43;
+    background: #f5eadc;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.shortcut-pill {
+    padding: 3px 6px;
+    border: 1px solid #dfe3dc;
+    border-radius: 4px;
+    color: var(--muted);
+    background: #fff;
+    font-family: "Courier New", monospace;
+    font-size: 9px;
+    font-weight: 700;
 }
 
 .prompt-body {

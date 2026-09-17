@@ -147,3 +147,62 @@ function addVariableFormStyles() {
     document.head.appendChild(styles);
 }
 });
+
+document.addEventListener("keydown", async event => {
+
+    if (event.repeat || event.isComposing || !(event.altKey || event.ctrlKey || event.metaKey)) {
+        return;
+    }
+
+    const shortcut = getEventShortcut(event);
+    const result = await chrome.storage.local.get("prompts");
+    const prompt = (result.prompts || []).find(savedPrompt => normalizeShortcut(savedPrompt.shortcut) === shortcut);
+
+    if (!prompt) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    markPromptUsed(prompt.id);
+    chrome.runtime.sendMessage({
+        action: "injectPrompt",
+        prompt: prompt.body
+    });
+});
+
+
+function getEventShortcut(event) {
+
+    const modifiers = [];
+
+    if (event.altKey) modifiers.push("Alt");
+    if (event.ctrlKey) modifiers.push("Ctrl");
+    if (event.metaKey) modifiers.push("Meta");
+    if (event.shiftKey) modifiers.push("Shift");
+
+    const key = event.code.startsWith("Key") ? event.code.slice(3).toUpperCase()
+        : event.code.startsWith("Digit") ? event.code.slice(5)
+        : event.key.length === 1 ? event.key.toUpperCase() : event.key;
+    return [...modifiers, key].join("+");
+}
+
+
+function normalizeShortcut(value) {
+
+    const parts = String(value || "").trim().replace(/\s+/g, "").split("+").filter(Boolean);
+    const modifiers = ["Alt", "Ctrl", "Meta", "Shift"].filter(modifier => parts.some(part => part.toLowerCase() === modifier.toLowerCase()));
+    const key = parts.find(part => !modifiers.some(modifier => part.toLowerCase() === modifier.toLowerCase()));
+    return key ? [...modifiers, key.length === 1 ? key.toUpperCase() : key].join("+") : "";
+}
+
+
+function markPromptUsed(promptId) {
+
+    chrome.storage.local.get("prompts").then(result => {
+        const prompts = (result.prompts || []).map(prompt => prompt.id === promptId
+            ? { ...prompt, usageCount: (Number(prompt.usageCount) || 0) + 1, lastUsed: Date.now() }
+            : prompt);
+        chrome.storage.local.set({ prompts });
+    });
+}
